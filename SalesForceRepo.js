@@ -53,7 +53,7 @@ class SalesForceRepo {
 
         // make the call to salesforce
         try {
-            let res = await this.axios.get(process.env.BASE_URL + 'Chasitor/ChasitorInit', { headers: headers });
+            let res = await this.axios.get(process.env.BASE_URL + 'System/Messages', { headers: headers });
             var data = res.data;
             return data;
         } catch (err) {

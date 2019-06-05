@@ -63,15 +63,18 @@ class MyBot extends ActivityHandler {
 
             conversationData.chatInitialized = true;
             console.log('Chat was initilaized');
+            console.log(conversationData.chatInitialized);
+            console.log(conversationData.chatRequestSuccessful);
 
             if (conversationData.chatInitialized === true && conversationData.chatRequestSuccessful === false) {
+                console.log('inside');
                 
                 var msgObject = await this.salesForceService.pullMessages(conversationData.affinityToken,conversationData.sessionKey);
                 var chatStatus = msgObject.messages[0].type;
-
+                console.log(chatStatus);
                 if (chatStatus === 'ChatRequestSuccess') {
                     await context.sendActivity('Chat request was a success, you are now connected to an agent.');
-                    conversationData.chatRequestSuccessfull = true;
+                    conversationData.chatRequestSuccessful = true;
                 }
 
                 if (chatStatus === 'ChatRequestFail') {
