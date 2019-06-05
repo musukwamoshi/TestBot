@@ -23,7 +23,9 @@ class MyBot extends ActivityHandler {
             const conversationData = await this.conversationData.get(context, {});
 
             await context.sendActivity(`You said ${ context.activity.text }`);
+
             conversationData.chatInitialized = false;
+            console.log(conversationData.chatInitialized);
             conversationData.chatRequestSuccessful = false;
             var res;
 
@@ -40,7 +42,9 @@ class MyBot extends ActivityHandler {
             conversationData.sessionKey = res.key;
             conversationData.affinityToken = res.affinityToken;
 
-            this.conversationState.conversationData = conversationData;
+            console.log(conversationData.sessionId);
+            console.log(conversationData.sessionKey);
+            console.log(conversationData.affinityToken);
 
             // attempt to initialize chat
             var userInfo = {
@@ -54,12 +58,15 @@ class MyBot extends ActivityHandler {
 
             if (conversationData.chatInitialized === false) {
                 await this.salesForceService.initializeChat(conversationData, userInfo, botTranscript);
+                await context.sendActivity('Initializing chat...');
             }
 
             conversationData.chatInitialized = true;
+            console.log('Chat was initilaized');
 
             if (conversationData.chatInitialized === true && conversationData.chatRequestSuccessful === false) {
-                var msgObject = await this.salesForceService.pullMessages();
+                
+                var msgObject = await this.salesForceService.pullMessages(conversationData.affinityToken,conversationData.sessionKey);
                 var chatStatus = msgObject.messages[0].type;
 
                 if (chatStatus === 'ChatRequestSuccess') {
@@ -74,7 +81,7 @@ class MyBot extends ActivityHandler {
 
             if (conversationData.chatInitialized === true && conversationData.chatRequestSuccessful === true) {
                 var msg = {
-                    text: context.message.text
+                    text: context.activity.text
                 };
 
                 this.salesForceService.sendChatMessage(msg, conversationData.affinityToken, conversationData.sessionKey);
@@ -104,10 +111,9 @@ class MyBot extends ActivityHandler {
             await next();
         });
 
-        this.onDialog(async (turnContext, next) => {
+        this.onDialog(async (context, next) => {
             // Save any state changes. The load happened during the execution of the Dialog.
-            await this.conversationState.saveChanges(turnContext, false);
-            await this.userState.saveChanges(turnContext, false);
+            await this.conversationState.saveChanges(context, false);
 
             // By calling next() you ensure that the next BotHandler is run.
             await next();
