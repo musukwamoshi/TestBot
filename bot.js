@@ -20,57 +20,51 @@ class MyBot extends ActivityHandler {
 
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
-            const conversationData = await this.conversationData.get(context, {});
+            const conversationData = await this.conversationData.get(context, { chatInitialized: false, chatRequestSuccessful: false, agentResponded: false });
 
-            await context.sendActivity(`You said ${ context.activity.text }`);
-
-            conversationData.chatInitialized = false;
+            // await context.sendActivity(`You said ${ context.activity.text }`);
             console.log(conversationData.chatInitialized);
-            conversationData.chatRequestSuccessful = false;
             var res;
 
             if (conversationData.chatInitialized === false) {
                 res = await this.salesForceService.startSession();
+
+                conversationData.sessionId = res.id;
+                conversationData.sessionKey = res.key;
+                conversationData.affinityToken = res.affinityToken;
             }
-
-            console.log(res);
-            console.log(res.key);
-            console.log(res.id);
-            console.log(res.affinityToken);
-
-            conversationData.sessionId = res.id;
-            conversationData.sessionKey = res.key;
-            conversationData.affinityToken = res.affinityToken;
 
             console.log(conversationData.sessionId);
             console.log(conversationData.sessionKey);
             console.log(conversationData.affinityToken);
 
             // attempt to initialize chat
-            var userInfo = {
-                FirstName: 'Moshi',
-                LastName: 'Musukwa',
-                Email: 'graft@gmail.com',
-                Company: 'ZADS'
-            };
-
+            
             var botTranscript = 'Bot Transcript';
 
             if (conversationData.chatInitialized === false) {
+                var userInfo = {
+                    FirstName: 'Moshi',
+                    LastName: 'Musukwa',
+                    Email: 'graft@gmail.com',
+                    Company: 'ZADS'
+                };
+    
                 await this.salesForceService.initializeChat(conversationData, userInfo, botTranscript);
                 await context.sendActivity('Initializing chat...');
+                conversationData.chatInitialized = true;
             }
 
-            conversationData.chatInitialized = true;
             console.log('Chat was initilaized');
             console.log(conversationData.chatInitialized);
             console.log(conversationData.chatRequestSuccessful);
 
             if (conversationData.chatInitialized === true && conversationData.chatRequestSuccessful === false) {
-                console.log('inside');
-                
-                var msgObject = await this.salesForceService.pullMessages(conversationData.affinityToken,conversationData.sessionKey);
+                console.log('inside pull messages block');
+
+                var msgObject = await this.salesForceService.pullMessages(conversationData.affinityToken, conversationData.sessionKey);
                 var chatStatus = msgObject.messages[0].type;
+
                 console.log(chatStatus);
                 if (chatStatus === 'ChatRequestSuccess') {
                     await context.sendActivity('Chat request was a success, you are now connected to an agent.');
@@ -83,20 +77,24 @@ class MyBot extends ActivityHandler {
             }
 
             if (conversationData.chatInitialized === true && conversationData.chatRequestSuccessful === true) {
-                var msg = {
-                    text: context.activity.text
-                };
+                console.log('inside chat');
 
-                this.salesForceService.sendChatMessage(msg, conversationData.affinityToken, conversationData.sessionKey);
+                if (conversationData.agentResponded === true) {
+                    var msg = {
+                        text: context.activity.text
+                    };
+                    this.salesForceService.sendChatMessage(msg, conversationData.affinityToken, conversationData.sessionKey);
+                }
 
                 // poll server until you get a response
                 var msgObject3;
                 do {
-                    msgObject3 = this.salesForceService.pullMessages(conversationData.affinityToken, conversationData.sessionKey);
-                } while (msgObject3.messages[0].type.toString() !== 'ChatMessage');
+                    msgObject3 = await this.salesForceService.pullMessages(conversationData.affinityToken, conversationData.sessionKey);
+                } while (msgObject3.messages[0].type !== 'ChatMessage');
 
                 var agentMsg = msgObject3.messages[0].message.text.toString();
                 await context.sendActivity(agentMsg);
+                conversationData.agentResponded = true;
             }
 
             // By calling next() you ensure that the next BotHandler is run.

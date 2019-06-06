@@ -9,6 +9,8 @@ var Question = {
     none:"None"
 }
 
+
+
 if(session.userData.Captured==false){
 
     captureUserInfo(userInfo,session);
@@ -43,10 +45,10 @@ if(session.conversationData.chatInitialized==true && session.conversationData.ch
     //give agent chance to respond to chat
 
    
-    var msgObject = this.salesForceService.pullMessages(session.conversationData.affinityToken, session.conversationData.sessionKey);
+    var msgObject = await this.salesForceService.pullMessages(session.conversationData.affinityToken, session.conversationData.sessionKey);
     var chatStatus = msgObject.messages[0].type;
 
-    if(chatStatus == "ChatRequestSuccess")
+    if(chatStatus === "ChatRequestSuccess")
     {
         session.send("Chat request was a success, you are now connected to an agent.");
         session.conversationData.chatRequestSuccessfull = true;
@@ -64,7 +66,7 @@ if(session.conversationData.chatInitialized==true && session.conversationData.ch
 //Send Chat Message
 if (session.userData.captured==true && session.conversationData.sessionInitialized==true && session.conversationData.chatInitialized==true && session.conversationData.chatRequestSuccessfull==true)
 {
-    if (session.message.text != session.message.text.ToString())
+    if (session.message.text !== session.message.text.ToString())
     {
         var  msg = {
             text: session.message.text
@@ -78,7 +80,7 @@ if (session.userData.captured==true && session.conversationData.sessionInitializ
     {
        var msgObject3 = this.salesForceService.pullMessages(session.conversationData.affinityToken, session.conversationData.sessionKey);
 
-    } while (msgObject3.messages[0].type.ToString() != "ChatMessage");
+    } while (msgObject3.messages[0].type.ToString() !== "ChatMessage");
 
     
      var agentMsg = msgObject3.messages[0].message.text.ToString();
